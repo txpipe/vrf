@@ -114,7 +114,7 @@ impl PublicKey10 {
     }
 }
 
-impl<'a> From<&'a SecretKey10> for PublicKey10 {
+impl From<&SecretKey10> for PublicKey10 {
     /// Derive a public key from a `SecretKey`.
     fn from(sk: &SecretKey10) -> PublicKey10 {
         let (scalar, _) = sk.extend();
