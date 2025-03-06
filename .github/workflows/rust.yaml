@@ -5,12 +5,16 @@ on:
     branches: [ "master" ]
   pull_request:
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
+  set-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set environment variable
+        run: echo "CARGO_TERM_COLOR=always" >> $GITHUB_ENV
+
   build:
     runs-on: ubuntu-latest
+    needs: [set-env]
     steps:
     - uses: actions/checkout@v4
     - uses: actions-rs/toolchain@v1
@@ -27,6 +31,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: [set-env]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -42,6 +47,7 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
+    needs: [set-env]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -58,6 +64,7 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    needs: [set-env]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
