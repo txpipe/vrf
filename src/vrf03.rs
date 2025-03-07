@@ -555,7 +555,17 @@ mod test {
 
     #[test]
     fn check_against_cardano_base() {
-        let json_file_path = Path::new("./tests/test_vectors/vrf_ver03_generated_1");
+        check_against_golden("./tests/test_vectors/vrf_ver03_generated_1");
+        check_against_golden("./tests/test_vectors/vrf_ver03_generated_2");
+        check_against_golden("./tests/test_vectors/vrf_ver03_generated_3");
+        check_against_golden("./tests/test_vectors/vrf_ver03_generated_4");
+        check_against_golden("./tests/test_vectors/vrf_ver03_standard_10");
+        check_against_golden("./tests/test_vectors/vrf_ver03_standard_11");
+        check_against_golden("./tests/test_vectors/vrf_ver03_standard_12");
+    }
+
+    fn check_against_golden(file_path: &str) {
+        let json_file_path = Path::new(file_path);
         let file = File::open(json_file_path).unwrap();
         let test_vector: serde_json::Value =
             serde_json::from_reader(file).expect("JSON was not well-formatted");
