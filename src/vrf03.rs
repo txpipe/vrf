@@ -550,4 +550,42 @@ mod test {
             assert_eq!(output[..], hex::decode(vector[3]).unwrap());
         }
     }
+
+    use std::{fs::File, path::Path};
+
+    #[test]
+    fn check_against_cardano_base() {
+        let json_file_path = Path::new("./tests/test_vectors/vrf_ver03_generated_1");
+        let file = File::open(json_file_path).unwrap();
+        let test_vector: serde_json::Value =
+            serde_json::from_reader(file).expect("JSON was not well-formatted");
+
+        let vrf_name = test_vector.get("vrf").unwrap().as_str().unwrap();
+        let standard_version = test_vector.get("ver").unwrap().as_str().unwrap();
+        let cipher_suite = test_vector.get("ciphersuite").unwrap().as_str().unwrap();
+        let secret_key = hex::decode(test_vector.get("sk").unwrap().as_str().unwrap()).unwrap();
+        let public_key: Vec<u8> =
+            hex::decode(test_vector.get("pk").unwrap().as_str().unwrap()).unwrap();
+        let message = hex::decode(test_vector.get("alpha").unwrap().as_str().unwrap()).unwrap();
+        let proof_expected: Vec<u8> =
+            hex::decode(test_vector.get("pi").unwrap().as_str().unwrap()).unwrap();
+        let output_expected =
+            hex::decode(test_vector.get("beta").unwrap().as_str().unwrap()).unwrap();
+
+        assert_eq!(vrf_name, "PraosVRF");
+        assert_eq!(standard_version, "ietfdraft03");
+        assert_eq!(cipher_suite, "ECVRF-ED25519-SHA512-Elligator2");
+
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&secret_key);
+        let mut pk_array = [0u8; 32];
+        pk_array.copy_from_slice(&public_key);
+        let sk = SecretKey03::from_bytes(&seed);
+        let pk = PublicKey03::from_bytes(&pk_array);
+        let proof_computed = VrfProof03::generate(&pk, &sk, &message);
+        assert_eq!(proof_computed.to_bytes()[..], proof_expected);
+
+        let output_computed = proof_computed.verify(&pk, &message).unwrap();
+        assert_eq!(output_computed[..], output_expected);
+    }
 }
