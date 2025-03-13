@@ -556,12 +556,6 @@ mod test {
     use serde_json::Value;
     use std::fs;
 
-    use std::any::type_name;
-
-    fn type_of<T>(_: T) -> &'static str {
-        type_name::<T>()
-    }
-
     const CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
         "./tests/test_vectors/vrf_ver03_generated_1",
         "./tests/test_vectors/vrf_ver03_generated_2",
@@ -591,6 +585,28 @@ mod test {
         pub output_expected: Vec<u8>,
     }
 
+    fn deserialize_string<'de, D>(map: &Value, field: String) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let err = field.clone().to_owned() + " should be a string";
+        let value = map
+            .get(&field)
+            .ok_or_else(|| de::Error::missing_field("missing field during deserialization"))?
+            .as_str()
+            .ok_or_else(|| de::Error::custom(&err))?;
+        Ok(value.to_string())
+    }
+
+    fn deserialize_hex<'de, D>(map: &Value, field: String) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let err = field.clone().to_owned() + " hex-encoded is expected!";
+        let field_str = deserialize_string::<D>(&map, field)?;
+        hex::decode(field_str).map_err(|_e| serde::de::Error::custom(err))
+    }
+
     impl<'de> Deserialize<'de> for GoldenTestVector {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
@@ -598,77 +614,15 @@ mod test {
         {
             let map: Value = Deserialize::deserialize(deserializer)?;
 
-            let vrf_name = map
-                .get("vrf_name")
-                .ok_or_else(|| de::Error::missing_field("vrf_name"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("vrf_name"))?
-                .to_string();
+            let vrf_name = deserialize_string::<D>(&map, "vrf_name".to_string())?;
+            let standard_version = deserialize_string::<D>(&map, "standard_version".to_string())?;
+            let cipher_suite = deserialize_string::<D>(&map, "cipher_suite".to_string())?;
 
-            let standard_version = map
-                .get("standard_version")
-                .ok_or_else(|| de::Error::missing_field("standard_version"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("standard_version should be a string"))?
-                .to_string();
-
-            let cipher_suite = map
-                .get("cipher_suite")
-                .ok_or_else(|| de::Error::missing_field("cipher_suite"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("cipher_suite should be a string"))?
-                .to_string();
-
-            println!("{}", type_of(map.get("cipher_suite")));
-
-            let secret_key_str = map
-                .get("secret_key")
-                .ok_or_else(|| de::Error::missing_field("secret_key"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("secret_key should be a string"))?
-                .to_string();
-            let secret_key = hex::decode(secret_key_str).map_err(|_e| {
-                serde::de::Error::custom(format!("Expected hex-encoded secret_key"))
-            })?;
-
-            let public_key_str = map
-                .get("public_key")
-                .ok_or_else(|| de::Error::missing_field("public_key"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("public_key should be a string"))?
-                .to_string();
-            let public_key = hex::decode(public_key_str).map_err(|_e| {
-                serde::de::Error::custom(format!("Expected hex-encoded public_key"))
-            })?;
-
-            let message_str = map
-                .get("message")
-                .ok_or_else(|| de::Error::missing_field("message"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("message should be a string"))?
-                .to_string();
-            let message = hex::decode(message_str)
-                .map_err(|_e| serde::de::Error::custom(format!("Expected hex-encoded message")))?;
-
-            let proof_expected_str = map
-                .get("proof_expected")
-                .ok_or_else(|| de::Error::missing_field("proof_expected"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("proof_expected should be a string"))?
-                .to_string();
-            let proof_expected = hex::decode(proof_expected_str).map_err(|_e| {
-                serde::de::Error::custom(format!("Expected hex-encoded proof_expected"))
-            })?;
-
-            let output_expected_str = map
-                .get("output_expected")
-                .ok_or_else(|| de::Error::missing_field("output_expected"))?
-                .as_str()
-                .ok_or_else(|| de::Error::custom("output_expected should be a string"))?
-                .to_string();
-            let output_expected = hex::decode(output_expected_str).map_err(|_e| {
-                serde::de::Error::custom(format!("Expected hex-encoded output_expected"))
-            })?;
+            let secret_key = deserialize_hex::<D>(&map, "secret_key".to_string())?;
+            let public_key = deserialize_hex::<D>(&map, "public_key".to_string())?;
+            let message = deserialize_hex::<D>(&map, "message".to_string())?;
+            let proof_expected = deserialize_hex::<D>(&map, "proof_expected".to_string())?;
+            let output_expected = deserialize_hex::<D>(&map, "output_expected".to_string())?;
 
             Ok(GoldenTestVector {
                 vrf_name,
