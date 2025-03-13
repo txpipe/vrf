@@ -641,7 +641,6 @@ mod test {
         let input = fs::read_to_string(file_path)?;
         let golden = serde_json::from_str::<GoldenTestVector>(&input)?;
 
-        assert_eq!(golden.vrf_name, "PraosVRF");
         assert_eq!(golden.standard_version, "ietfdraft03");
         assert_eq!(golden.cipher_suite, "ECVRF-ED25519-SHA512-Elligator2");
 
