@@ -551,51 +551,158 @@ mod test {
         }
     }
 
-    use std::{fs::File, path::Path};
+    use serde::de::{self};
+    use serde::{Deserialize, Deserializer};
+    use serde_json::Value;
+    use std::fs;
 
-    #[test]
-    fn check_against_cardano_base() {
-        check_against_golden("./tests/test_vectors/vrf_ver03_generated_1");
-        check_against_golden("./tests/test_vectors/vrf_ver03_generated_2");
-        check_against_golden("./tests/test_vectors/vrf_ver03_generated_3");
-        check_against_golden("./tests/test_vectors/vrf_ver03_generated_4");
-        check_against_golden("./tests/test_vectors/vrf_ver03_standard_10");
-        check_against_golden("./tests/test_vectors/vrf_ver03_standard_11");
-        check_against_golden("./tests/test_vectors/vrf_ver03_standard_12");
+    use std::any::type_name;
+
+    fn type_of<T>(_: T) -> &'static str {
+        type_name::<T>()
     }
 
-    fn check_against_golden(file_path: &str) {
-        let json_file_path = Path::new(file_path);
-        let file = File::open(json_file_path).unwrap();
-        let test_vector: serde_json::Value =
-            serde_json::from_reader(file).expect("JSON was not well-formatted");
+    const CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
+        "./tests/test_vectors/vrf_ver03_generated_1",
+        "./tests/test_vectors/vrf_ver03_generated_2",
+        "./tests/test_vectors/vrf_ver03_generated_3",
+        "./tests/test_vectors/vrf_ver03_generated_4",
+        "./tests/test_vectors/vrf_ver03_standard_10",
+        "./tests/test_vectors/vrf_ver03_standard_11",
+        "./tests/test_vectors/vrf_ver03_standard_12",
+    ];
 
-        let vrf_name = test_vector.get("vrf").unwrap().as_str().unwrap();
-        let standard_version = test_vector.get("ver").unwrap().as_str().unwrap();
-        let cipher_suite = test_vector.get("ciphersuite").unwrap().as_str().unwrap();
-        let secret_key = hex::decode(test_vector.get("sk").unwrap().as_str().unwrap()).unwrap();
-        let public_key: Vec<u8> =
-            hex::decode(test_vector.get("pk").unwrap().as_str().unwrap()).unwrap();
-        let message = hex::decode(test_vector.get("alpha").unwrap().as_str().unwrap()).unwrap();
-        let proof_expected: Vec<u8> =
-            hex::decode(test_vector.get("pi").unwrap().as_str().unwrap()).unwrap();
-        let output_expected =
-            hex::decode(test_vector.get("beta").unwrap().as_str().unwrap()).unwrap();
+    #[test]
+    fn check_compatibility_with_cardano_base_vrf03() {
+        for filename in CARDANO_BASE_TEST_VECTORS {
+            let _ = check_against_golden(&filename);
+        }
+    }
 
-        assert_eq!(vrf_name, "PraosVRF");
-        assert_eq!(standard_version, "ietfdraft03");
-        assert_eq!(cipher_suite, "ECVRF-ED25519-SHA512-Elligator2");
+    #[derive(PartialEq, Debug, Clone)]
+    pub struct GoldenTestVector {
+        pub vrf_name: String,
+        pub standard_version: String,
+        pub cipher_suite: String,
+        pub secret_key: Vec<u8>,
+        pub public_key: Vec<u8>,
+        pub message: Vec<u8>,
+        pub proof_expected: Vec<u8>,
+        pub output_expected: Vec<u8>,
+    }
+
+    impl<'de> Deserialize<'de> for GoldenTestVector {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let map: Value = Deserialize::deserialize(deserializer)?;
+
+            let vrf_name = map
+                .get("vrf_name")
+                .ok_or_else(|| de::Error::missing_field("vrf_name"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("vrf_name"))?
+                .to_string();
+
+            let standard_version = map
+                .get("standard_version")
+                .ok_or_else(|| de::Error::missing_field("standard_version"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("standard_version should be a string"))?
+                .to_string();
+
+            let cipher_suite = map
+                .get("cipher_suite")
+                .ok_or_else(|| de::Error::missing_field("cipher_suite"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("cipher_suite should be a string"))?
+                .to_string();
+
+            println!("{}", type_of(map.get("cipher_suite")));
+
+            let secret_key_str = map
+                .get("secret_key")
+                .ok_or_else(|| de::Error::missing_field("secret_key"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("secret_key should be a string"))?
+                .to_string();
+            let secret_key = hex::decode(secret_key_str).map_err(|_e| {
+                serde::de::Error::custom(format!("Expected hex-encoded secret_key"))
+            })?;
+
+            let public_key_str = map
+                .get("public_key")
+                .ok_or_else(|| de::Error::missing_field("public_key"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("public_key should be a string"))?
+                .to_string();
+            let public_key = hex::decode(public_key_str).map_err(|_e| {
+                serde::de::Error::custom(format!("Expected hex-encoded public_key"))
+            })?;
+
+            let message_str = map
+                .get("message")
+                .ok_or_else(|| de::Error::missing_field("message"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("message should be a string"))?
+                .to_string();
+            let message = hex::decode(message_str)
+                .map_err(|_e| serde::de::Error::custom(format!("Expected hex-encoded message")))?;
+
+            let proof_expected_str = map
+                .get("proof_expected")
+                .ok_or_else(|| de::Error::missing_field("proof_expected"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("proof_expected should be a string"))?
+                .to_string();
+            let proof_expected = hex::decode(proof_expected_str).map_err(|_e| {
+                serde::de::Error::custom(format!("Expected hex-encoded proof_expected"))
+            })?;
+
+            let output_expected_str = map
+                .get("output_expected")
+                .ok_or_else(|| de::Error::missing_field("output_expected"))?
+                .as_str()
+                .ok_or_else(|| de::Error::custom("output_expected should be a string"))?
+                .to_string();
+            let output_expected = hex::decode(output_expected_str).map_err(|_e| {
+                serde::de::Error::custom(format!("Expected hex-encoded output_expected"))
+            })?;
+
+            Ok(GoldenTestVector {
+                vrf_name,
+                standard_version,
+                cipher_suite,
+                secret_key,
+                public_key,
+                message,
+                proof_expected,
+                output_expected,
+            })
+        }
+    }
+
+    fn check_against_golden(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let input = fs::read_to_string(file_path)?;
+        let golden = serde_json::from_str::<GoldenTestVector>(&input)?;
+
+        assert_eq!(golden.vrf_name, "PraosVRF");
+        assert_eq!(golden.standard_version, "ietfdraft03");
+        assert_eq!(golden.cipher_suite, "ECVRF-ED25519-SHA512-Elligator2");
 
         let mut seed = [0u8; 32];
-        seed.copy_from_slice(&secret_key);
+        seed.copy_from_slice(&golden.secret_key);
         let mut pk_array = [0u8; 32];
-        pk_array.copy_from_slice(&public_key);
+        pk_array.copy_from_slice(&golden.public_key);
         let sk = SecretKey03::from_bytes(&seed);
         let pk = PublicKey03::from_bytes(&pk_array);
-        let proof_computed = VrfProof03::generate(&pk, &sk, &message);
-        assert_eq!(proof_computed.to_bytes()[..], proof_expected);
+        let proof_computed = VrfProof03::generate(&pk, &sk, &golden.message);
+        assert_eq!(proof_computed.to_bytes()[..], golden.proof_expected);
 
-        let output_computed = proof_computed.verify(&pk, &message).unwrap();
-        assert_eq!(output_computed[..], output_expected);
+        let output_computed = proof_computed.verify(&pk, &golden.message).unwrap();
+        assert_eq!(output_computed[..], golden.output_expected);
+
+        Ok(())
     }
 }
