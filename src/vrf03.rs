@@ -550,4 +550,72 @@ mod test {
             assert_eq!(output[..], hex::decode(vector[3]).unwrap());
         }
     }
+
+    use serde::{Deserialize, Deserializer};
+    use std::fs;
+
+    const CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
+        "./tests/test_vectors/vrf_ver03_generated_1",
+        "./tests/test_vectors/vrf_ver03_generated_2",
+        "./tests/test_vectors/vrf_ver03_generated_3",
+        "./tests/test_vectors/vrf_ver03_generated_4",
+        "./tests/test_vectors/vrf_ver03_standard_10",
+        "./tests/test_vectors/vrf_ver03_standard_11",
+        "./tests/test_vectors/vrf_ver03_standard_12",
+    ];
+
+    #[test]
+    fn check_compatibility_with_cardano_base_vrf03() {
+        for filename in CARDANO_BASE_TEST_VECTORS {
+            let _ = check_against_golden(&filename);
+        }
+    }
+
+    #[derive(PartialEq, Debug, Clone, Deserialize)]
+    pub struct GoldenTestVector {
+        pub vrf_name: String,
+        pub standard_version: String,
+        pub cipher_suite: String,
+        #[serde(deserialize_with = "deserialize_hex")]
+        pub secret_key: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
+        pub public_key: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
+        pub message: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
+        pub proof_expected: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
+        pub output_expected: Vec<u8>,
+    }
+
+    fn deserialize_hex<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = <String>::deserialize(deserializer)?;
+        let bytes = hex::decode(buf).map_err(serde::de::Error::custom)?;
+        Ok(bytes)
+    }
+
+    fn check_against_golden(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let input = fs::read_to_string(file_path)?;
+        let golden = serde_json::from_str::<GoldenTestVector>(&input)?;
+
+        assert_eq!(golden.standard_version, "ietfdraft03");
+        assert_eq!(golden.cipher_suite, "ECVRF-ED25519-SHA512-Elligator2");
+
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&golden.secret_key);
+        let mut pk_array = [0u8; 32];
+        pk_array.copy_from_slice(&golden.public_key);
+        let sk = SecretKey03::from_bytes(&seed);
+        let pk = PublicKey03::from_bytes(&pk_array);
+        let proof_computed = VrfProof03::generate(&pk, &sk, &golden.message);
+        assert_eq!(proof_computed.to_bytes()[..], golden.proof_expected);
+
+        let output_computed = proof_computed.verify(&pk, &golden.message).unwrap();
+        assert_eq!(output_computed[..], golden.output_expected);
+
+        Ok(())
+    }
 }
