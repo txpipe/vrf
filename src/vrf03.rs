@@ -551,9 +551,7 @@ mod test {
         }
     }
 
-    use serde::de::{self};
     use serde::{Deserialize, Deserializer};
-    use serde_json::Value;
     use std::fs;
 
     const CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
@@ -573,68 +571,30 @@ mod test {
         }
     }
 
-    #[derive(PartialEq, Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone, Deserialize)]
     pub struct GoldenTestVector {
         pub vrf_name: String,
         pub standard_version: String,
         pub cipher_suite: String,
+        #[serde(deserialize_with = "deserialize_hex")]
         pub secret_key: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
         pub public_key: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
         pub message: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
         pub proof_expected: Vec<u8>,
+        #[serde(deserialize_with = "deserialize_hex")]
         pub output_expected: Vec<u8>,
     }
 
-    fn deserialize_string<'de, D>(map: &Value, field: String) -> Result<String, D::Error>
+    fn deserialize_hex<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let err = field.clone().to_owned() + " should be a string";
-        let value = map
-            .get(&field)
-            .ok_or_else(|| de::Error::missing_field("missing field during deserialization"))?
-            .as_str()
-            .ok_or_else(|| de::Error::custom(&err))?;
-        Ok(value.to_string())
-    }
-
-    fn deserialize_hex<'de, D>(map: &Value, field: String) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let err = field.clone().to_owned() + " hex-encoded is expected!";
-        let field_str = deserialize_string::<D>(&map, field)?;
-        hex::decode(field_str).map_err(|_e| serde::de::Error::custom(err))
-    }
-
-    impl<'de> Deserialize<'de> for GoldenTestVector {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            let map: Value = Deserialize::deserialize(deserializer)?;
-
-            let vrf_name = deserialize_string::<D>(&map, "vrf_name".to_string())?;
-            let standard_version = deserialize_string::<D>(&map, "standard_version".to_string())?;
-            let cipher_suite = deserialize_string::<D>(&map, "cipher_suite".to_string())?;
-
-            let secret_key = deserialize_hex::<D>(&map, "secret_key".to_string())?;
-            let public_key = deserialize_hex::<D>(&map, "public_key".to_string())?;
-            let message = deserialize_hex::<D>(&map, "message".to_string())?;
-            let proof_expected = deserialize_hex::<D>(&map, "proof_expected".to_string())?;
-            let output_expected = deserialize_hex::<D>(&map, "output_expected".to_string())?;
-
-            Ok(GoldenTestVector {
-                vrf_name,
-                standard_version,
-                cipher_suite,
-                secret_key,
-                public_key,
-                message,
-                proof_expected,
-                output_expected,
-            })
-        }
+        let buf = <String>::deserialize(deserializer)?;
+        let bytes = hex::decode(buf).map_err(serde::de::Error::custom)?;
+        Ok(bytes)
     }
 
     fn check_against_golden(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
