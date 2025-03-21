@@ -38,3 +38,20 @@ $ cargo run --quiet -- -g
 $ cargo run --quiet -- -g
 d70bd72e77e4425ea46e92c85dc8f42d14afc88daf74196a1ec6225f6b1f412b
 ```
+
+### How to derive a public key from a valid secret key (<strong>pk.pub</strong>)
+
+```console
+$ cargo run --quiet -- --generate
+a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
+$ echo "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7" | cargo run --quiet -- --derive
+2929eeeaa6366fd2577fd1e4e0c5bcf1729ddfd51fd6cbb7fe9840a39c7b300e
+
+//to short secret key
+$ echo "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17" | cargo run --quiet -- --derive
+Decode error of the secret key: Invalid character '\n' at position 62
+
+//reading from file also works
+$ cargo run --quiet -- --derive sk.prv
+2929eeeaa6366fd2577fd1e4e0c5bcf1729ddfd51fd6cbb7fe9840a39c7b300e
+```
