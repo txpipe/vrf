@@ -25,3 +25,16 @@ It follows, although not strictly, [draft-irtf-cfrg-vrf-13](https://datatracker.
 If the next VRF is chosen to be deployed as the next VRF the repo is going to support and be strictly compatible with it.
 
 **DISCLAIMER**: this crate is still under active development and could be used at own risk.
+
+## Command-Line
+
+`vrf_dalek` comes with a command-line interface for Linux. The command-line is self explanatory by using `--help` on various commands and sub-commands.
+
+### How to randomly generate a valid secret key (<strong>sk.prv</strong>)
+
+```console
+$ cargo run --quiet -- -g
+79b589b94ba935eca61d4fb83245be1208788d329255645df3e5aab9c7deef8c
+$ cargo run --quiet -- -g
+d70bd72e77e4425ea46e92c85dc8f42d14afc88daf74196a1ec6225f6b1f412b
+```
