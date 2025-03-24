@@ -52,8 +52,8 @@ pub fn run(config: Config) -> CLIResult<()> {
                     Ok(sk_handle) => {
                         let mut buffer = [0; 64];
                         let mut handle = sk_handle.take(64);
-                        handle.read(&mut buffer)?;
-                        match hex::decode(&buffer) {
+                        handle.read_exact(&mut buffer)?;
+                        match hex::decode(buffer) {
                             Ok(bs) => {
                                 let mut sk_array = [0u8; 32];
                                 sk_array.copy_from_slice(&bs);
