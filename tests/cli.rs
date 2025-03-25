@@ -1,9 +1,14 @@
+use vrf_dalek::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
+
 use assert_cmd::Command;
 use predicates::prelude::*;
+use std::fs;
+
+const PRG: &str = "vrf_dalek";
 
 #[test]
 fn correct_output_help_arg() {
-    let mut cmd = Command::cargo_bin("vrf_dalek").unwrap();
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
     cmd.arg("--help")
         .assert()
         .success()
@@ -12,7 +17,7 @@ fn correct_output_help_arg() {
 
 #[test]
 fn correct_output_version_arg() {
-    let mut cmd = Command::cargo_bin("vrf_dalek").unwrap();
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
     let ver = "vrf_dalek 0.1.0";
     cmd.arg("--version")
         .assert()
@@ -22,10 +27,30 @@ fn correct_output_version_arg() {
 
 #[test]
 fn correct_length_hex_output_generate_arg() {
-    let mut cmd = Command::cargo_bin("vrf_dalek").unwrap();
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
     let is_32_byte_hex = predicate::str::is_match("^[0-9a-f]{64}\\n$").unwrap();
     cmd.arg("--generate")
         .assert()
         .success()
         .stdout(is_32_byte_hex);
+}
+
+#[test]
+fn check_publickey_deriving_from_file_with_golden_tests() {
+    for filename in CARDANO_BASE_TEST_VECTORS {
+        let _ = check_against_golden_from_file(&filename);
+    }
+}
+
+fn check_against_golden_from_file(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path)?;
+    let golden = serde_json::from_str::<GoldenTestVector>(&input)?;
+
+    cmd.arg("--generate")
+        .args([file_path])
+        .assert()
+        .success()
+        .stdout(golden.public_key);
+    Ok(())
 }

@@ -305,6 +305,7 @@ impl VrfProof03 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // VRF test vector from                                                                         //
@@ -551,50 +552,13 @@ mod test {
         }
     }
 
-    use serde::{Deserialize, Deserializer};
     use std::fs;
-
-    const CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
-        "./tests/test_vectors/vrf_ver03_generated_1",
-        "./tests/test_vectors/vrf_ver03_generated_2",
-        "./tests/test_vectors/vrf_ver03_generated_3",
-        "./tests/test_vectors/vrf_ver03_generated_4",
-        "./tests/test_vectors/vrf_ver03_standard_10",
-        "./tests/test_vectors/vrf_ver03_standard_11",
-        "./tests/test_vectors/vrf_ver03_standard_12",
-    ];
 
     #[test]
     fn check_compatibility_with_cardano_base_vrf03() {
         for filename in CARDANO_BASE_TEST_VECTORS {
             let _ = check_against_golden(&filename);
         }
-    }
-
-    #[derive(PartialEq, Debug, Clone, Deserialize)]
-    pub struct GoldenTestVector {
-        pub vrf_name: String,
-        pub standard_version: String,
-        pub cipher_suite: String,
-        #[serde(deserialize_with = "deserialize_hex")]
-        pub secret_key: Vec<u8>,
-        #[serde(deserialize_with = "deserialize_hex")]
-        pub public_key: Vec<u8>,
-        #[serde(deserialize_with = "deserialize_hex")]
-        pub message: Vec<u8>,
-        #[serde(deserialize_with = "deserialize_hex")]
-        pub proof_expected: Vec<u8>,
-        #[serde(deserialize_with = "deserialize_hex")]
-        pub output_expected: Vec<u8>,
-    }
-
-    fn deserialize_hex<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let buf = <String>::deserialize(deserializer)?;
-        let bytes = hex::decode(buf).map_err(serde::de::Error::custom)?;
-        Ok(bytes)
     }
 
     fn check_against_golden(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
