@@ -19,3 +19,13 @@ fn correct_output_version_arg() {
         .success()
         .stdout(predicate::str::contains(ver));
 }
+
+#[test]
+fn correct_length_hex_output_generate_arg() {
+    let mut cmd = Command::cargo_bin("vrf_dalek").unwrap();
+    let is_32_byte_hex = predicate::str::is_match("^[0-9a-f]{64}\\n$").unwrap();
+    cmd.arg("--generate")
+        .assert()
+        .success()
+        .stdout(is_32_byte_hex);
+}
