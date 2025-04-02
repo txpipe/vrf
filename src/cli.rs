@@ -1,7 +1,7 @@
 //! CLI implementation using VRF-03 implementation following
 //! [version 03](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-03)
 //! of the draft.
-use crate::vrf03::{PublicKey03, SecretKey03};
+use crate::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 
 use clap::{App, Arg};
 use rand_chacha::ChaCha20Rng;
@@ -21,6 +21,9 @@ pub enum Cmd {
 
     /// Derives 32 bytes public key from a valid secret key
     DerivePk,
+
+    /// Creates 80 bytes proof from an arbitrary message using a valid secret key
+    CreateProof,
 }
 
 /// Config captured that determines what is invoked in CLI
@@ -45,7 +48,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                 None => {
                     eprintln!("No stdin or file was provided to read a secret key");
                 }
-                Some(sk_source) => match open(&sk_source) {
+                Some(sk_source) => match openAny(&sk_source) {
                     Err(err) => {
                         eprintln!("Failed to open {}: {}", sk_source, err);
                     }
@@ -60,6 +63,37 @@ pub fn run(config: Config) -> CLIResult<()> {
                                 let sk = SecretKey03::from_bytes(&sk_array);
                                 let pk = PublicKey03::from(&sk);
                                 println!("{}", hex::encode(PublicKey03::as_bytes(&pk)));
+                            }
+                            Err(err) => {
+                                eprintln!("Decode error of the secret key: {}", err);
+                            }
+                        }
+                    }
+                },
+            };
+        }
+        Cmd::CreateProof => {
+            match config.file {
+                None => {
+                    eprintln!("A secret key must be provided in a file");
+                }
+                Some(sk_source) => match openBoth(&sk_source) {
+                    Err(err) => {
+                        eprintln!("Failed to open stdin/file: {}", err);
+                    }
+                    Ok((mut msg_handle, sk_handle)) => {
+                        let mut buffer = [0; 64];
+                        let mut handle = sk_handle.take(64);
+                        handle.read_exact(&mut buffer)?;
+                        match hex::decode(buffer) {
+                            Ok(bs) => {
+                                let mut sk_array = [0u8; 32];
+                                sk_array.copy_from_slice(&bs);
+                                let sk = SecretKey03::from_bytes(&sk_array);
+                                let pk = PublicKey03::from(&sk);
+                                let msg = msg_handle.fill_buf()?;
+                                let proof = VrfProof03::generate(&pk, &sk, &msg);
+                                println!("{}", hex::encode(VrfProof03::to_bytes(&proof)));
                             }
                             Err(err) => {
                                 eprintln!("Decode error of the secret key: {}", err);
@@ -95,6 +129,15 @@ pub fn get_args() -> CLIResult<Config> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("prove")
+                .short("p")
+                .long("prove")
+                .help("Create a proof for a message (stdin) using a secret key (file)")
+                .conflicts_with("generate")
+                .conflicts_with("derive")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("file")
                 .value_name("FILE")
                 .help("Input file")
@@ -115,14 +158,28 @@ pub fn get_args() -> CLIResult<Config> {
                 .values_of_lossy("file")
                 .map(|mut vec| vec.pop().unwrap()),
         }
+    } else if matches.is_present("prove") {
+        Config {
+            cmd: Cmd::CreateProof,
+            file: matches
+                .values_of_lossy("file")
+                .map(|mut vec| vec.pop().unwrap()),
+        }
     } else {
         panic!("wrong cmd")
     })
 }
 
-fn open(filename: &str) -> CLIResult<Box<dyn BufRead>> {
+fn openAny(filename: &str) -> CLIResult<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
         _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
     }
+}
+
+fn openBoth(filename: &str) -> CLIResult<(Box<dyn BufRead>, Box<dyn BufRead>)> {
+    Ok((
+        Box::new(BufReader::new(io::stdin())),
+        Box::new(BufReader::new(File::open(filename)?)),
+    ))
 }
