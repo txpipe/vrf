@@ -16,24 +16,34 @@ pub static CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
 #[derive(PartialEq, Debug, Clone, Deserialize)]
 pub struct GoldenTestVector {
     /// VRF version name, like Praos
+    #[serde(alias = "vrf")]
     pub vrf_name: String,
+
     /// draft version
+    #[serde(alias = "ver")]
     pub standard_version: String,
+
     /// `cipher_suite` of `ECVRF-ED25519-SHA512-Elligator2`
+    #[serde(alias = "ciphersuite")]
     pub cipher_suite: String,
+
     /// Secret key used
-    #[serde(deserialize_with = "deserialize_hex")]
+    #[serde(deserialize_with = "deserialize_hex", alias = "sk")]
     pub secret_key: Vec<u8>,
+
     /// Public key derived from the secret key
-    #[serde(deserialize_with = "deserialize_hex")]
+    #[serde(deserialize_with = "deserialize_hex", alias = "pk")]
     pub public_key: Vec<u8>,
+
     /// Message being the input
-    #[serde(deserialize_with = "deserialize_hex")]
+    #[serde(deserialize_with = "deserialize_hex", alias = "alpha")]
     pub message: Vec<u8>,
-    #[serde(deserialize_with = "deserialize_hex")]
+
+    #[serde(deserialize_with = "deserialize_hex", alias = "pi")]
     /// Proof calculated based on the message and the secret key
     pub proof_expected: Vec<u8>,
-    #[serde(deserialize_with = "deserialize_hex")]
+
+    #[serde(deserialize_with = "deserialize_hex", alias = "beta")]
     /// Hash calculated based on the message and the secret key
     pub output_expected: Vec<u8>,
 }

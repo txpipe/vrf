@@ -42,15 +42,37 @@ fn check_publickey_deriving_from_file_with_golden_tests() {
     }
 }
 
-fn check_against_golden_from_file(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin(PRG).unwrap();
-    let input = fs::read_to_string(file_path)?;
-    let golden = serde_json::from_str::<GoldenTestVector>(&input)?;
+#[test]
+fn check_publickey_deriving_from_stdin_with_golden_tests() {
+    for filename in CARDANO_BASE_TEST_VECTORS {
+        let _ = check_against_golden_from_stdin(&filename);
+    }
+}
 
-    cmd.arg("--generate")
-        .args([file_path])
+fn check_against_golden_from_file(file_path: &str) {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path).unwrap();
+    let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
+    let _file_in = fs::write("sk", &hex::encode(&golden.secret_key)).unwrap();
+    let expected_output = hex::encode(golden.public_key) + "\n";
+
+    cmd.args(["--derive", "sk"])
         .assert()
         .success()
-        .stdout(golden.public_key);
-    Ok(())
+        .stdout(expected_output);
+
+    fs::remove_file("sk").unwrap();
+}
+
+fn check_against_golden_from_stdin(file_path: &str) {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path).unwrap();
+    let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
+    let expected_output = hex::encode(golden.public_key) + "\n";
+
+    cmd.arg("--derive")
+        .write_stdin(hex::encode(golden.secret_key))
+        .assert()
+        .success()
+        .stdout(expected_output);
 }
