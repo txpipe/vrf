@@ -56,6 +56,20 @@ fn check_proving_with_golden_tests() {
     }
 }
 
+#[test]
+fn check_hash_output_from_file_with_golden_tests() {
+    for filename in CARDANO_BASE_TEST_VECTORS {
+        let _ = check_hash_output_against_golden_from_file(&filename);
+    }
+}
+
+#[test]
+fn check_hash_output_from_stdin_with_golden_tests() {
+    for filename in CARDANO_BASE_TEST_VECTORS {
+        let _ = check_hash_output_against_golden_from_stdin(&filename);
+    }
+}
+
 fn check_deriving_against_golden_from_file(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
@@ -98,4 +112,32 @@ fn check_proving_against_golden(file_path: &str) {
         .stdout(expected_output);
 
     fs::remove_file("sk2.prv").unwrap();
+}
+
+fn check_hash_output_against_golden_from_file(file_path: &str) {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path).unwrap();
+    let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
+    let _file_in = fs::write("proof", &hex::encode(&golden.proof_expected)).unwrap();
+    let expected_output = hex::encode(golden.output_expected);
+
+    cmd.args(["--output", "proof"])
+        .assert()
+        .success()
+        .stdout(expected_output);
+
+    fs::remove_file("proof").unwrap();
+}
+
+fn check_hash_output_against_golden_from_stdin(file_path: &str) {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path).unwrap();
+    let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
+    let expected_output = hex::encode(golden.output_expected);
+
+    cmd.arg("--output")
+        .write_stdin(hex::encode(golden.proof_expected))
+        .assert()
+        .success()
+        .stdout(expected_output);
 }
