@@ -2,7 +2,7 @@
 use serde::{Deserialize, Deserializer};
 
 /// Location of test vectors
-pub static CARDANO_BASE_TEST_VECTORS: [&'static str; 7] = [
+pub static CARDANO_BASE_TEST_VECTORS: [&str; 7] = [
     "./tests/test_vectors/vrf_ver03_generated_1",
     "./tests/test_vectors/vrf_ver03_generated_2",
     "./tests/test_vectors/vrf_ver03_generated_3",

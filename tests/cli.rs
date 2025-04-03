@@ -28,7 +28,7 @@ fn correct_output_version_arg() {
 #[test]
 fn correct_length_hex_output_generate_arg() {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
-    let is_32_byte_hex = predicate::str::is_match("^[0-9a-f]{64}\\n$").unwrap();
+    let is_32_byte_hex = predicate::str::is_match("^[0-9a-f]{64}$").unwrap();
     cmd.arg("--generate")
         .assert()
         .success()
@@ -54,7 +54,7 @@ fn check_against_golden_from_file(file_path: &str) {
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
     let _file_in = fs::write("sk", &hex::encode(&golden.secret_key)).unwrap();
-    let expected_output = hex::encode(golden.public_key) + "\n";
+    let expected_output = hex::encode(golden.public_key);
 
     cmd.args(["--derive", "sk"])
         .assert()
@@ -68,7 +68,7 @@ fn check_against_golden_from_stdin(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    let expected_output = hex::encode(golden.public_key) + "\n";
+    let expected_output = hex::encode(golden.public_key);
 
     cmd.arg("--derive")
         .write_stdin(hex::encode(golden.secret_key))

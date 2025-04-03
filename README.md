@@ -33,25 +33,28 @@ If the next VRF is chosen to be deployed as the next VRF the repo is going to su
 ### How to randomly generate a valid secret key (<strong>sk.prv</strong>)
 
 ```console
-$ cargo run --quiet -- -g
+$ cargo run --quiet -- -g ; echo
 79b589b94ba935eca61d4fb83245be1208788d329255645df3e5aab9c7deef8c
-$ cargo run --quiet -- -g
+$ cargo run --quiet -- -g ; echo
 d70bd72e77e4425ea46e92c85dc8f42d14afc88daf74196a1ec6225f6b1f412b
 ```
 
 ### How to derive a public key from a valid secret key (<strong>pk.pub</strong>)
 
 ```console
-$ cargo run --quiet -- --generate
+$ cargo run --quiet -- --generate ; echo
 a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
-$ echo "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7" | cargo run --quiet -- --derive
+$ echo -n "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7" | cargo run --quiet -- -d ; echo
 2929eeeaa6366fd2577fd1e4e0c5bcf1729ddfd51fd6cbb7fe9840a39c7b300e
 
-//to short secret key
+//too short secret key
 $ echo "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17" | cargo run --quiet -- --derive
-Decode error of the secret key: Invalid character '\n' at position 62
+failed to fill whole buffer
 
 //reading from file also works
-$ cargo run --quiet -- --derive sk.prv
+$ cargo run --quiet -- --generate > sk.prv
+$ cat sk.prv ; echo
+a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
+$ cargo run --quiet -- --derive sk.prv ; echo
 2929eeeaa6366fd2577fd1e4e0c5bcf1729ddfd51fd6cbb7fe9840a39c7b300e
 ```

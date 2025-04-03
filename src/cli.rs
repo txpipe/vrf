@@ -41,7 +41,7 @@ pub fn run(config: Config) -> CLIResult<()> {
             getrandom::fill(&mut seed)?;
             let mut rng = ChaCha20Rng::from_seed(seed);
             let sk = SecretKey03::generate(&mut rng);
-            println!("{}", hex::encode(SecretKey03::as_bytes(&sk)));
+            print!("{}", hex::encode(SecretKey03::as_bytes(&sk)));
         }
         Cmd::DerivePk => {
             match config.file {
@@ -62,7 +62,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                                 sk_array.copy_from_slice(&bs);
                                 let sk = SecretKey03::from_bytes(&sk_array);
                                 let pk = PublicKey03::from(&sk);
-                                println!("{}", hex::encode(PublicKey03::as_bytes(&pk)));
+                                print!("{}", hex::encode(PublicKey03::as_bytes(&pk)));
                             }
                             Err(err) => {
                                 eprintln!("Decode error of the secret key: {}", err);
@@ -92,7 +92,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                                 let sk = SecretKey03::from_bytes(&sk_array);
                                 let pk = PublicKey03::from(&sk);
                                 let msg = msg_handle.fill_buf()?;
-                                let proof = VrfProof03::generate(&pk, &sk, &msg);
+                                let proof = VrfProof03::generate(&pk, &sk, msg);
                                 println!("{}", hex::encode(VrfProof03::to_bytes(&proof)));
                             }
                             Err(err) => {
