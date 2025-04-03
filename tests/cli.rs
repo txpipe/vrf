@@ -70,11 +70,18 @@ fn check_hash_output_from_stdin_with_golden_tests() {
     }
 }
 
+#[test]
+fn check_verifying_with_golden_tests() {
+    for filename in CARDANO_BASE_TEST_VECTORS {
+        let _ = check_verifying_against_golden(&filename);
+    }
+}
+
 fn check_deriving_against_golden_from_file(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    let _file_in = fs::write("sk1.prv", &hex::encode(&golden.secret_key)).unwrap();
+    fs::write("sk1.prv", &hex::encode(&golden.secret_key)).unwrap();
     let expected_output = hex::encode(golden.public_key);
 
     cmd.args(["--derive", "sk1.prv"])
@@ -102,7 +109,7 @@ fn check_proving_against_golden(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    let _file_in = fs::write("sk2.prv", &hex::encode(&golden.secret_key)).unwrap();
+    fs::write("sk2.prv", &hex::encode(&golden.secret_key)).unwrap();
     let expected_output = hex::encode(golden.proof_expected);
 
     cmd.args(["--prove", "sk2.prv"])
@@ -118,7 +125,7 @@ fn check_hash_output_against_golden_from_file(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    let _file_in = fs::write("proof", &hex::encode(&golden.proof_expected)).unwrap();
+    fs::write("proof", &hex::encode(&golden.proof_expected)).unwrap();
     let expected_output = hex::encode(golden.output_expected);
 
     cmd.args(["--output", "proof"])
@@ -140,4 +147,21 @@ fn check_hash_output_against_golden_from_stdin(file_path: &str) {
         .assert()
         .success()
         .stdout(expected_output);
+}
+
+fn check_verifying_against_golden(file_path: &str) {
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    let input = fs::read_to_string(file_path).unwrap();
+    let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
+    fs::write("pk.pub", &hex::encode(&golden.public_key)).unwrap();
+    let proof = hex::encode(&golden.proof_expected);
+    let expected_output = hex::encode(golden.output_expected);
+
+    cmd.args(["--verify", &proof, "pk.pub"])
+        .write_stdin(golden.message)
+        .assert()
+        .success()
+        .stdout(expected_output);
+
+    fs::remove_file("pk.pub").unwrap();
 }

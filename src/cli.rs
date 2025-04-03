@@ -162,7 +162,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                                 let mut proof_array = [0u8; 80];
                                 proof_array.copy_from_slice(&proof);
                                 let proof = VrfProof03::from_bytes(&proof_array)?;
-                                match proof.verify(&pk, &msg) {
+                                match proof.verify(&pk, msg) {
                                     Ok(output) => {
                                         print!("{}", hex::encode(output));
                                     }
@@ -242,16 +242,6 @@ pub fn get_args() -> CLIResult<Config> {
         )
         .get_matches();
 
-    let proof_read = match hex::decode(
-        matches
-            .values_of_lossy("verify")
-            .map(|mut vec| vec.pop().unwrap())
-            .unwrap(),
-    ) {
-        Ok(bs) if bs.len() == 80 => Ok(bs),
-        _ => Err("not valid proof"),
-    };
-
     Ok(if matches.is_present("generate") {
         Config {
             cmd: Cmd::GenerateSk,
@@ -279,6 +269,15 @@ pub fn get_args() -> CLIResult<Config> {
                 .map(|mut vec| vec.pop().unwrap()),
         }
     } else if matches.is_present("verify") {
+        let proof_read = match hex::decode(
+            matches
+                .values_of_lossy("verify")
+                .map(|mut vec| vec.pop().unwrap())
+                .unwrap(),
+        ) {
+            Ok(bs) if bs.len() == 80 => Ok(bs),
+            _ => Err("not valid proof"),
+        };
         Config {
             cmd: Cmd::VerifyProof { proof: proof_read? },
             file: matches
