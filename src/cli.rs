@@ -24,6 +24,9 @@ pub enum Cmd {
 
     /// Creates 80 bytes proof from an arbitrary message using a valid secret key
     CreateProof,
+
+    /// Converts 80 bytes proof to hash
+    ProofToHash,
 }
 
 /// Config captured that determines what is invoked in CLI
@@ -103,6 +106,34 @@ pub fn run(config: Config) -> CLIResult<()> {
                 },
             };
         }
+        Cmd::ProofToHash => {
+            match config.file {
+                None => {
+                    eprintln!("No stdin or file was provided to read a proof");
+                }
+                Some(proof_source) => match openAny(&proof_source) {
+                    Err(err) => {
+                        eprintln!("Failed to open {}: {}", proof_source, err);
+                    }
+                    Ok(proof_handle) => {
+                        let mut buffer = [0; 160];
+                        let mut handle = proof_handle.take(160);
+                        handle.read_exact(&mut buffer)?;
+                        match hex::decode(buffer) {
+                            Ok(bs) => {
+                                let mut proof_array = [0u8; 80];
+                                proof_array.copy_from_slice(&bs);
+                                let proof = VrfProof03::from_bytes(&proof_array)?;
+                                print!("{}", hex::encode(VrfProof03::proof_to_hash(&proof)));
+                            }
+                            Err(err) => {
+                                eprintln!("Decode error of the proof: {}", err);
+                            }
+                        }
+                    }
+                },
+            };
+        }
     }
     Ok(())
 }
@@ -117,14 +148,14 @@ pub fn get_args() -> CLIResult<Config> {
             Arg::with_name("generate")
                 .short("g")
                 .long("generate")
-                .help("Generate secret key")
+                .help("Generate a secret key")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("derive")
                 .short("d")
                 .long("derive")
-                .help("Derive public key from secret key")
+                .help("Derive a public key from a secret key (stdin/file)")
                 .conflicts_with("generate")
                 .takes_value(false),
         )
@@ -136,6 +167,16 @@ pub fn get_args() -> CLIResult<Config> {
                 .conflicts_with("generate")
                 .conflicts_with("derive")
                 .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("output")
+                .short("o")
+                .long("output")
+                .help("Create an output hash from a proof (stdin/file)")
+                .takes_value(false)
+                .conflicts_with("generate")
+                .conflicts_with("derive")
+                .conflicts_with("prove"),
         )
         .arg(
             Arg::with_name("file")
@@ -161,6 +202,13 @@ pub fn get_args() -> CLIResult<Config> {
     } else if matches.is_present("prove") {
         Config {
             cmd: Cmd::CreateProof,
+            file: matches
+                .values_of_lossy("file")
+                .map(|mut vec| vec.pop().unwrap()),
+        }
+    } else if matches.is_present("output") {
+        Config {
+            cmd: Cmd::ProofToHash,
             file: matches
                 .values_of_lossy("file")
                 .map(|mut vec| vec.pop().unwrap()),

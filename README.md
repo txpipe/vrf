@@ -51,7 +51,7 @@ $ echo -n "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7" | c
 $ echo "a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17" | cargo run --quiet -- --derive
 failed to fill whole buffer
 
-//reading from file also works
+//reading the secret key from file also works
 $ cargo run --quiet -- --generate > sk.prv
 $ cat sk.prv ; echo
 a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
@@ -70,4 +70,20 @@ $ echo "" | cargo run --quiet -- -p sk.prv ; echo
 5934560de918aa1b3318dd1c34480dc7df5f2e6f109c9a1b6ebdb3cb247c14a4b591b0b6077755ca7686cded69568197f09d88aa9b785ee6b07b236ffb0bdaf1298d7e74ec6e8796bc612dafff535606
 $ echo "" -n | cargo run --quiet -- -p sk.prv ; echo
 41a4f54948b99ea3c45fe419641a010fd82a90416144d0a755661ecf762ea7133e1cc5aa6b640311e99aff2e018affa259bdfa413a351c47906cea1ae525d5d1c2babf3ade313b6125740ef01781980e
+```
+
+### How to create an output hash from a proof (<strong>output</strong>)
+
+```console
+$ cat sk.prv ; echo
+a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
+$ echo "msg" | cargo run --quiet -- -p sk.prv > proof
+$ cat proof ; echo
+e654752ea43ba215e37ab17fdd99d678bd4844266cb0a944afa4e6878790a43bc4b3adced6fec2df3b55ac97c3e827e5d1d9b63a36000278200dea7009882a97387102bc226053073c32f64be6c47d04
+$ cat proof | cargo run --quiet -- -o ; echo
+4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
+
+//reading proof from file also works
+$ cargo run --quiet -- -o proof ; echo
+4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
 ```
