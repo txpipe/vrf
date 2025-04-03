@@ -93,7 +93,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                                 let pk = PublicKey03::from(&sk);
                                 let msg = msg_handle.fill_buf()?;
                                 let proof = VrfProof03::generate(&pk, &sk, msg);
-                                println!("{}", hex::encode(VrfProof03::to_bytes(&proof)));
+                                print!("{}", hex::encode(VrfProof03::to_bytes(&proof)));
                             }
                             Err(err) => {
                                 eprintln!("Decode error of the secret key: {}", err);
