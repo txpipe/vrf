@@ -87,3 +87,22 @@ $ cat proof | cargo run --quiet -- -o ; echo
 $ cargo run --quiet -- -o proof ; echo
 4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
 ```
+
+### How to verify a proof for a given message using a public key (<strong>output</strong>)
+
+```console
+$ cat sk.prv ; echo
+a1419b6db73a2eefe4d62fd67022ab5a2b5c310e2323a494cd0ace76d12a17c7
+$ cargo run --quiet -- --derive sk.prv > pk.pub
+$ cat pk.pub
+2929eeeaa6366fd2577fd1e4e0c5bcf1729ddfd51fd6cbb7fe9840a39c7b300e
+$ echo "msg" | cargo run --quiet -- -p sk.prv > proof
+$ cat proof ; echo
+e654752ea43ba215e37ab17fdd99d678bd4844266cb0a944afa4e6878790a43bc4b3adced6fec2df3b55ac97c3e827e5d1d9b63a36000278200dea7009882a97387102bc226053073c32f64be6c47d04
+$ cat proof | cargo run --quiet -- -o ; echo
+4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
+
+//verifying using public key that the proof is created for the same msg
+$ echo "msg" | cargo run --quiet -- --verify $(cat proof) pk.pub ; echo
+4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
+```

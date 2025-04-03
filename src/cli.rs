@@ -25,8 +25,14 @@ pub enum Cmd {
     /// Creates 80 bytes proof from an arbitrary message using a valid secret key
     CreateProof,
 
-    /// Converts 80 bytes proof to hash
+    /// Converts 80 bytes proof to 64 bytes hash
     ProofToHash,
+
+    /// Verify 80 bytes proof against the message it was created with a 32 bytes public key
+    VerifyProof {
+        /// proof
+        proof: Vec<u8>,
+    },
 }
 
 /// Config captured that determines what is invoked in CLI
@@ -134,6 +140,45 @@ pub fn run(config: Config) -> CLIResult<()> {
                 },
             };
         }
+        Cmd::VerifyProof { proof } => {
+            match config.file {
+                None => {
+                    eprintln!("A proof must be provided in a file");
+                }
+                Some(proof_source) => match openBoth(&proof_source) {
+                    Err(err) => {
+                        eprintln!("Failed to open stdin/file: {}", err);
+                    }
+                    Ok((mut msg_handle, pk_handle)) => {
+                        let mut buffer = [0; 64];
+                        let mut handle = pk_handle.take(64);
+                        handle.read_exact(&mut buffer)?;
+                        match hex::decode(buffer) {
+                            Ok(bs) => {
+                                let mut pk_array = [0u8; 32];
+                                pk_array.copy_from_slice(&bs);
+                                let pk = PublicKey03::from_bytes(&pk_array);
+                                let msg = msg_handle.fill_buf()?;
+                                let mut proof_array = [0u8; 80];
+                                proof_array.copy_from_slice(&proof);
+                                let proof = VrfProof03::from_bytes(&proof_array)?;
+                                match proof.verify(&pk, &msg) {
+                                    Ok(output) => {
+                                        print!("{}", hex::encode(output));
+                                    }
+                                    _ => {
+                                        eprintln!("The proof cannot be verified");
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                eprintln!("Decode error of the secret key: {}", err);
+                            }
+                        }
+                    }
+                },
+            };
+        }
     }
     Ok(())
 }
@@ -179,6 +224,16 @@ pub fn get_args() -> CLIResult<Config> {
                 .conflicts_with("prove"),
         )
         .arg(
+            Arg::with_name("verify")
+                .long("verify")
+                .help("Create an output for a proof (argument value) using a public key (file) given a message (stdin)")
+                .conflicts_with("generate")
+                .conflicts_with("derive")
+                .conflicts_with("prove")
+                .conflicts_with("output")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("file")
                 .value_name("FILE")
                 .help("Input file")
@@ -186,6 +241,16 @@ pub fn get_args() -> CLIResult<Config> {
                 .default_value("-"),
         )
         .get_matches();
+
+    let proof_read = match hex::decode(
+        matches
+            .values_of_lossy("verify")
+            .map(|mut vec| vec.pop().unwrap())
+            .unwrap(),
+    ) {
+        Ok(bs) if bs.len() == 80 => Ok(bs),
+        _ => Err("not valid proof"),
+    };
 
     Ok(if matches.is_present("generate") {
         Config {
@@ -209,6 +274,13 @@ pub fn get_args() -> CLIResult<Config> {
     } else if matches.is_present("output") {
         Config {
             cmd: Cmd::ProofToHash,
+            file: matches
+                .values_of_lossy("file")
+                .map(|mut vec| vec.pop().unwrap()),
+        }
+    } else if matches.is_present("verify") {
+        Config {
+            cmd: Cmd::VerifyProof { proof: proof_read? },
             file: matches
                 .values_of_lossy("file")
                 .map(|mut vec| vec.pop().unwrap()),
