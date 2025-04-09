@@ -7,7 +7,8 @@ use rand::{
     distributions::{Alphanumeric, Uniform},
     Rng,
 };
-use std::fs;
+use std::{fs, io::Write};
+use tempfile::NamedTempFile;
 
 const PRG: &str = "vrf_dalek";
 
@@ -158,15 +159,15 @@ fn check_deriving_against_golden_from_file(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    fs::write("sk1.prv", &hex::encode(&golden.secret_key)).unwrap();
+    let mut sk_prv = NamedTempFile::new().unwrap();
+    write!(sk_prv, "{}", hex::encode(&golden.secret_key)).unwrap();
+    let file_name = (*sk_prv.path()).display().to_string();
     let expected_output = hex::encode(golden.public_key);
 
-    cmd.args(["--derive", "sk1.prv"])
+    cmd.args(["--derive", &file_name])
         .assert()
         .success()
         .stdout(expected_output);
-
-    fs::remove_file("sk1.prv").unwrap();
 }
 
 fn check_deriving_against_golden_from_stdin(file_path: &str) {
@@ -186,31 +187,32 @@ fn check_proving_against_golden(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    fs::write("sk2.prv", &hex::encode(&golden.secret_key)).unwrap();
+    let mut sk_prv = NamedTempFile::new().unwrap();
+    write!(sk_prv, "{}", hex::encode(&golden.secret_key)).unwrap();
+    let file_name = (*sk_prv.path()).display().to_string();
     let expected_output = hex::encode(golden.proof_expected);
 
-    cmd.args(["--prove", "sk2.prv"])
+    cmd.args(["--prove", &file_name])
         .write_stdin(golden.message)
         .assert()
         .success()
         .stdout(expected_output);
-
-    fs::remove_file("sk2.prv").unwrap();
 }
 
 fn check_hash_output_against_golden_from_file(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    fs::write("proof", &hex::encode(&golden.proof_expected)).unwrap();
+    let mut proof = NamedTempFile::new().unwrap();
+    write!(proof, "{}", hex::encode(&golden.proof_expected)).unwrap();
+    let file_name = (*proof.path()).display().to_string();
+
     let expected_output = hex::encode(golden.output_expected);
 
-    cmd.args(["--output", "proof"])
+    cmd.args(["--output", &file_name])
         .assert()
         .success()
         .stdout(expected_output);
-
-    fs::remove_file("proof").unwrap();
 }
 
 fn check_hash_output_against_golden_from_stdin(file_path: &str) {
@@ -230,17 +232,17 @@ fn check_verifying_against_golden(file_path: &str) {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
     let input = fs::read_to_string(file_path).unwrap();
     let golden = serde_json::from_str::<GoldenTestVector>(&input).unwrap();
-    fs::write("pk.pub", &hex::encode(&golden.public_key)).unwrap();
+    let mut pk_pub = NamedTempFile::new().unwrap();
+    write!(pk_pub, "{}", hex::encode(&golden.public_key)).unwrap();
+    let file_name = (*pk_pub.path()).display().to_string();
     let proof = hex::encode(&golden.proof_expected);
     let expected_output = hex::encode(golden.output_expected);
 
-    cmd.args(["--verify", &proof, "pk.pub"])
+    cmd.args(["--verify", &proof, &file_name])
         .write_stdin(golden.message)
         .assert()
         .success()
         .stdout(expected_output);
-
-    fs::remove_file("pk.pub").unwrap();
 }
 
 fn gen_nonexistent_file() -> String {
