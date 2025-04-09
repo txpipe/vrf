@@ -1,8 +1,12 @@
 use vrf_dalek::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
 
 use assert_cmd::Command;
+use getrandom::fill;
 use predicates::prelude::*;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{
+    distributions::{Alphanumeric, Uniform},
+    Rng,
+};
 use std::fs;
 
 const PRG: &str = "vrf_dalek";
@@ -44,15 +48,8 @@ fn check_publickey_deriving_from_file_with_golden_tests() {
 }
 
 #[test]
-fn check_publickey_deriving_from_nonexistent_file() {
-    let nonexistent = gen_nonexistent_file();
-    let expected = format!("{}: .* [(]os error 2[)]", nonexistent);
-    let mut cmd = Command::cargo_bin(PRG).unwrap();
-
-    cmd.args(["--derive", &nonexistent])
-        .assert()
-        .success()
-        .stderr(predicate::str::is_match(expected).unwrap());
+fn check_publickey_when_nonexistent_file() {
+    check_when_nonexistent_file("--derive");
 }
 
 #[test]
@@ -70,6 +67,19 @@ fn check_proving_with_golden_tests() {
 }
 
 #[test]
+fn check_proving_when_nonexistent_file() {
+    let mut rng = rand::thread_rng();
+    let num = rng.sample(Uniform::new(1usize, 15));
+    let msg: String = rng
+        .sample_iter(&Alphanumeric)
+        .take(num)
+        .map(char::from)
+        .collect();
+
+    check_when_nonexistent_file_and_stdin("--prove", None, &msg);
+}
+
+#[test]
 fn check_hash_output_from_file_with_golden_tests() {
     for filename in CARDANO_BASE_TEST_VECTORS {
         let _ = check_hash_output_against_golden_from_file(&filename);
@@ -84,9 +94,63 @@ fn check_hash_output_from_stdin_with_golden_tests() {
 }
 
 #[test]
+fn check_hash_output_when_nonexistent_file() {
+    check_when_nonexistent_file("--output");
+}
+
+#[test]
 fn check_verifying_with_golden_tests() {
     for filename in CARDANO_BASE_TEST_VECTORS {
         let _ = check_verifying_against_golden(&filename);
+    }
+}
+
+#[test]
+fn check_verifying_when_nonexistent_file() {
+    let mut rng = rand::thread_rng();
+    let mut random_bytes = [0u8; 80];
+    let _ = fill(&mut random_bytes[..]);
+    let proof = hex::encode(&random_bytes);
+    let num = rng.sample(Uniform::new(1usize, 15));
+    let msg: String = rng
+        .sample_iter(&Alphanumeric)
+        .take(num)
+        .map(char::from)
+        .collect();
+
+    check_when_nonexistent_file_and_stdin("--verify", Some(&proof), &msg);
+}
+
+fn check_when_nonexistent_file(command: &str) {
+    let nonexistent = gen_nonexistent_file();
+    let expected = format!("{}: .* [(]os error 2[)]", nonexistent);
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+
+    cmd.args([command, &nonexistent])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_match(expected).unwrap());
+}
+
+fn check_when_nonexistent_file_and_stdin(command: &str, arg: Option<&str>, msg: &str) {
+    let nonexistent = gen_nonexistent_file();
+    let expected = format!("{}: .* [(]os error 2[)]", nonexistent);
+    let mut cmd = Command::cargo_bin(PRG).unwrap();
+    match arg {
+        Some(val) => {
+            cmd.args([command, val, &nonexistent])
+                .write_stdin(msg)
+                .assert()
+                .success()
+                .stderr(predicate::str::is_match(expected).unwrap());
+        }
+        None => {
+            cmd.args([command, &nonexistent])
+                .write_stdin(msg)
+                .assert()
+                .success()
+                .stderr(predicate::str::is_match(expected).unwrap());
+        }
     }
 }
 

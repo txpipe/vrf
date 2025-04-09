@@ -88,7 +88,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                 }
                 Some(sk_source) => match openBoth(&sk_source) {
                     Err(err) => {
-                        eprintln!("Failed to open stdin/file: {}", err);
+                        eprintln!("{}: {}", sk_source, err);
                     }
                     Ok((mut msg_handle, sk_handle)) => {
                         let mut buffer = [0; 64];
@@ -147,7 +147,7 @@ pub fn run(config: Config) -> CLIResult<()> {
                 }
                 Some(proof_source) => match openBoth(&proof_source) {
                     Err(err) => {
-                        eprintln!("Failed to open stdin/file: {}", err);
+                        eprintln!("{}: {}", proof_source, err);
                     }
                     Ok((mut msg_handle, pk_handle)) => {
                         let mut buffer = [0; 64];
