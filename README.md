@@ -1,4 +1,4 @@
-# Verifiable Random Function
+# Verifiable Random Function (VRF)
 
 The repo contains two implementations of draft VRF preceding the ratified standard
 [rfc9381](https://datatracker.ietf.org/doc/rfc9381/). Namely,
@@ -25,6 +25,26 @@ It follows, although not strictly, [draft-irtf-cfrg-vrf-13](https://datatracker.
 If the next VRF is chosen to be deployed as the next VRF the repo is going to support and be strictly compatible with it.
 
 **DISCLAIMER**: this crate is still under active development and could be used at own risk.
+
+## What is VRF?
+
+VRF is the public-key version of a keyed cryptographic hash. Only the holder of the private VRF
+key is able to compute the hash, but anyone with corresponding public key can verify the correctness of the hash.
+VRF is a cryptographic function that generates random numbers in a deterministic and verifiable manner.
+The function is public-key pseudorandom one and provides proofs that its outputs were calculated correctly.
+
+The **owner of the secret key** can compute the function value as well as an associated proof for any input value.
+The **rest** that have at their disposal the associated public key can use it along with the proof and check that the input value was indeed calculated correctly,
+yet finding the secret key is not possible for them.
+
+The idea was invented by [Micali, Rabin, Vadhan](https://ieeexplore.ieee.org/document/814584/) and was aimed to provide deterministic pre-commitments for low entropy inputs which
+must be resistant to brute-force pre-image attacks. The VRF can be used for defense against offline enumeration attacks (such as dictionary attacks) on data stored in hash-based data structures.
+See [Goldberg, Vcelak, Papadopoulos, Reyzin](https://open.bu.edu/server/api/core/bitstreams/7a1c4233-d789-4790-90a8-35ff39aea26a/content).
+
+It's a crucial component for various applications, such as generating random numbers for lotteries and
+ensuring secure and unpredictable leader selection in proof-of-stake blockchain networks.
+
+
 
 ## Command-Line
 
