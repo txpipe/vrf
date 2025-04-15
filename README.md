@@ -28,23 +28,41 @@ If the next VRF is chosen to be deployed as the next VRF the repo is going to su
 
 ## What is VRF?
 
-VRF is the public-key version of a keyed cryptographic hash. Only the holder of the private VRF
-key is able to compute the hash, but anyone with corresponding public key can verify the correctness of the hash.
-VRF is a cryptographic function that generates random numbers in a deterministic and verifiable manner.
-The function is public-key pseudorandom one and provides proofs that its outputs were calculated correctly.
-
-The **owner of the secret key** can compute the function value as well as an associated proof for any input value.
-The **rest** that have at their disposal the associated public key can use it along with the proof and check that the input value was indeed calculated correctly,
-yet finding the secret key is not possible for them.
+VRF is the public-key pseudorandom function that provides a proof, in a non-interactive manner, for the corectedness of its output.
+Only the holder of the private VRF key is able to compute the output, along with the proof of correctness.
+The proof convinces the verifier, the party that owns the public key of the VRF, that the output is indeed correct.
 
 The idea was invented by [Micali, Rabin, Vadhan](https://ieeexplore.ieee.org/document/814584/) and was aimed to provide deterministic pre-commitments for low entropy inputs which
 must be resistant to brute-force pre-image attacks. The VRF can be used for defense against offline enumeration attacks (such as dictionary attacks) on data stored in hash-based data structures.
 See [Goldberg, Vcelak, Papadopoulos, Reyzin](https://open.bu.edu/server/api/core/bitstreams/7a1c4233-d789-4790-90a8-35ff39aea26a/content).
+The initial constructions were having significant drawbacks, for example proofs and keys of VRFs were linear in the input size.
+[Dodis and Yampolskiy](https://eprint.iacr.org/2004/310.pdf) introduced technique that allowed the usage of constant size proofs and keys.
 
-It's a crucial component for various applications, such as generating random numbers for lotteries and
+It's a crucial cryptographic primitive for various applications, such as generating random numbers for lotteries and
 ensuring secure and unpredictable leader selection in proof-of-stake blockchain networks.
 
+## VRF in cardano
 
+The rationale behind using it in Cardano is presented in [Ouroboros Praos paper](https://iohk.io/en/research/library/papers/ouroboros-praos-an-adaptively-secure-semi-synchronous-proof-of-stake-protocol/)
+and later refined in [Consensus specification](https://ouroboros-consensus.cardano.intersectmbo.org/assets/files/consensus-spec-7378c9844defdc1b18f69b89206e3a9b.pdf).
+
+The VRF is used in two paticular contexts:
+1. Leader Election, where a VRF output/proof is used to verify that a party is selected to generate a block
+2. Random Beacon, where a VRF output/proof is used to generate randomness for leader election in the next epoch
+
+### Technical details of VRF in cardano
+
+It is worth mentioning in a nutshell, how exactly, VRF is used in consensus.
+It is succintly presented in Fig. 2 of paper
+
+A block **B** for a slot number **sl** containing data **d** is produced by a party **P** by publishing the tuple
+**(st, d, sl, crt, ρ, σ)**.
+Here, **st** is the hash of the previous blocks.
+The tuple **crt = (P, y, π)** contains the party’s identity **P**,
+a VRF output (ie., hash) **y** and a vrf proof **π**.
+The pair **ρ = (yρ, πρ)** contains a VRF output **yρ** and a VRF proof **πρ**.
+Finally, **σ** is a KE signature (aka KES) on the value **(st, d,sl, crt, ρ)** for the time slot **sl**,
+generated with the signing key for a particular point in time specified by **sl**.
 
 ## Command-Line
 
