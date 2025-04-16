@@ -28,15 +28,16 @@ If the next VRF is chosen to be deployed as the next VRF the repo is going to su
 
 ## What is VRF?
 
-VRF is the public-key pseudorandom function that provides a proof, in a non-interactive manner, for the corectedness of its output.
-Only the holder of the private VRF key is able to compute the output, along with the proof of correctness.
-The proof convinces the verifier, the party that owns the public key of the VRF, that the output is indeed correct.
+VRF is the public-key pseudorandom function that provides a proof, in a non-interactive manner, for the correctness of its output.
+Only the holder of the private VRF key is able to compute the output, along with the proof of its correctness.
+The proof convinces the verifier, the party that has access to the public key of the VRF, that the output is indeed correct.
 
 The idea was invented by [Micali, Rabin, Vadhan](https://ieeexplore.ieee.org/document/814584/) and was aimed to provide deterministic pre-commitments for low entropy inputs which
 must be resistant to brute-force pre-image attacks. The VRF can be used for defense against offline enumeration attacks (such as dictionary attacks) on data stored in hash-based data structures.
 See [Goldberg, Vcelak, Papadopoulos, Reyzin](https://open.bu.edu/server/api/core/bitstreams/7a1c4233-d789-4790-90a8-35ff39aea26a/content).
 The initial constructions were having significant drawbacks, for example proofs and keys of VRFs were linear in the input size.
 [Dodis and Yampolskiy](https://eprint.iacr.org/2004/310.pdf) introduced technique that allowed the usage of constant size proofs and keys.
+The [draft-irtf-cfrg-vrf-03](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-03) relies on this breakthrough.
 
 It's a crucial cryptographic primitive for various applications, such as generating random numbers for lotteries and
 ensuring secure and unpredictable leader selection in proof-of-stake blockchain networks.
@@ -53,16 +54,37 @@ The VRF is used in two paticular contexts:
 ### Technical details of VRF in cardano
 
 It is worth mentioning in a nutshell, how exactly, VRF is used in consensus.
-It is succintly presented in Fig. 2 of paper
+It is succintly presented in Fig. 2 of [Ouroboros Praos paper](https://iohk.io/en/research/library/papers/ouroboros-praos-an-adaptively-secure-semi-synchronous-proof-of-stake-protocol/).
 
-A block **B** for a slot number **sl** containing data **d** is produced by a party **P** by publishing the tuple
-**(st, d, sl, crt, ρ, σ)**.
-Here, **st** is the hash of the previous blocks.
-The tuple **crt = (P, y, π)** contains the party’s identity **P**,
-a VRF output (ie., hash) **y** and a vrf proof **π**.
-The pair **ρ = (yρ, πρ)** contains a VRF output **yρ** and a VRF proof **πρ**.
-Finally, **σ** is a KE signature (aka KES) on the value **(st, d,sl, crt, ρ)** for the time slot **sl**,
-generated with the signing key for a particular point in time specified by **sl**.
+VRF is used as the core randomness generating scheme in Praos.
+Having a VRF secret key and an input, one is able to output a pseudorandom number and the proof of the correctness of this output generation.
+Anyone with the corresponding public key and the proof can verify that the number was produced with the expected input.
+On the another hand, the holder of public key cannot do it before that time.
+
+In Praos, each block **B** has an agreed **nounce** that must be used as an input for each participant, **P**, to  its VRF.
+For a slot number **sl**, each participant **P** uses its VRF and the **nounce** and generate
+random number. If the random number is smaller than a threshold value computed from their stakes, then they are the leader of a given slot.
+As the VRF computation is independent between participants, we can have multiple leaders or none.
+The following code snippet embodies this stage:
+
+```code
+let t = threshold_compute(pool_stake);
+
+for sl in slots_in_epoch {
+    let input = nounce ++ sl ++ "TEST";
+    let (y, proof) = VRF.prove(SK, input);
+    if y < t then {
+        prepare_for_generating_block(sl, y, proof)
+    }
+}
+```
+
+If the participant, **P**, is chosen to generate the block is runs VRF.prove like above but with _NOUNCE_ instead of _TEST_.
+The resultant **y** and **proof** are put into the block header.
+
+When the epoch is coming to an end, from **16k** slots (out of **24k** that make each epoch, **k** is security parameter) **ys** are extracted,
+concatinated along with the previous **nounce**. Then the hash is taken and the next epoch **nounce** is determined that way.
+Each participant also updates their threshold value to be valid in the coming epoch.
 
 ## Command-Line
 
