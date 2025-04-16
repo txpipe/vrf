@@ -7,5 +7,3 @@ pub mod errors;
 pub mod golden;
 pub mod vrf;
 pub mod vrf03;
-pub mod vrf10;
-pub mod vrf10_batchcompat;
