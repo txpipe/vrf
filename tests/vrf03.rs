@@ -278,4 +278,25 @@ mod test {
 
         Ok(())
     }
+
+    use proptest::prelude::*;
+
+    fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {
+        proptest::string::bytes_regex("[[:ascii:]]{32}")
+            .unwrap()
+            .prop_map(|vec| {
+                let mut bytes = [0u8; 32];
+                bytes.copy_from_slice(&vec);
+                let sk = SecretKey03::from_bytes(&bytes);
+                (bytes, PublicKey03::from(&sk))
+            })
+    }
+
+    proptest! {
+        #[test]
+        fn public_key_has_32_bytes((_sk,pk) in secret_public_keys()) {
+            let pk_bytes = PublicKey03::to_bytes(pk);
+            prop_assert!(pk_bytes.len() == 32);
+        }
+    }
 }
