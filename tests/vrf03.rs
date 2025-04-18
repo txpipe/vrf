@@ -280,6 +280,7 @@ mod test {
     }
 
     use proptest::prelude::*;
+    use vrf_dalek::constants::SEED_SIZE;
 
     fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {
         proptest::string::bytes_regex("[[:ascii:]]{32}")
