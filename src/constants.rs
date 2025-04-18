@@ -2,8 +2,6 @@
 
 /// `suite_string` of `ECVRF-ED25519-SHA512-Elligator2`
 pub const SUITE: &[u8] = &[4u8];
-/// `ZERO` used as a domain separator
-pub const ZERO: &[u8] = &[0u8];
 /// `ONE` used as a domain separator
 pub const ONE: &[u8] = &[1u8];
 /// `TWO` used as a domain separator

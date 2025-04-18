@@ -22,14 +22,14 @@
 //! By default, we always expose as the generic VRF, the latest version. However, all VRF functions
 //! are exposed in the API.
 #![allow(non_snake_case)]
-use crate::vrf10::{PublicKey10, SecretKey10, VrfProof10};
+use crate::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 
 /// VRF secret key
-pub type SecretKey = SecretKey10;
+pub type SecretKey = SecretKey03;
 /// VRF public key
-pub type PublicKey = PublicKey10;
+pub type PublicKey = PublicKey03;
 /// VRF proof
-pub type VrfProof = VrfProof10;
+pub type VrfProof = VrfProof03;
 
 #[cfg(test)]
 mod test {
