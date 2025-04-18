@@ -293,11 +293,24 @@ mod test {
             })
     }
 
+    fn payload() -> impl Strategy<Value = Vec<u8>> {
+        proptest::string::bytes_regex("[[:ascii:]]{0,254}").unwrap()
+    }
+
     proptest! {
         #[test]
-        fn public_key_has_32_bytes((_sk,pk) in secret_public_keys()) {
+        fn public_key_has_32_bytes((_,pk) in secret_public_keys()) {
             let pk_bytes = PublicKey03::to_bytes(pk);
             prop_assert!(pk_bytes.len() == 32);
         }
+
+        #[test]
+        fn proof_has_80_bytes(((sk_bytes,pk),alpha) in (secret_public_keys(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &alpha);
+            let proof_bytes = VrfProof03::to_bytes(&proof);
+            prop_assert!(proof_bytes.len() == 80);
+        }
+
     }
 }
