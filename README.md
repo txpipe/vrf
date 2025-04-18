@@ -35,7 +35,7 @@ The proof convinces the verifier, the party that has access to the public key of
 The idea was invented by [Micali, Rabin, Vadhan](https://ieeexplore.ieee.org/document/814584/) and was aimed to provide deterministic pre-commitments for low entropy inputs which
 must be resistant to brute-force pre-image attacks. The VRF can be used for defense against offline enumeration attacks (such as dictionary attacks) on data stored in hash-based data structures.
 See [Goldberg, Vcelak, Papadopoulos, Reyzin](https://open.bu.edu/server/api/core/bitstreams/7a1c4233-d789-4790-90a8-35ff39aea26a/content).
-The initial constructions were having significant drawbacks, for example proofs and keys of VRFs were linear in the input size.
+The initial constructions were having significant drawbacks, for example, proofs and keys of VRFs were linear in the input size.
 [Dodis and Yampolskiy](https://eprint.iacr.org/2004/310.pdf) introduced technique that allowed the usage of constant size proofs and keys.
 The [draft-irtf-cfrg-vrf-03](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-03) relies on this breakthrough.
 
@@ -51,9 +51,9 @@ The VRF is used in two paticular contexts:
 1. Leader Election, where a VRF output/proof is used to verify that a party is selected to generate a block
 2. Random Beacon, where a VRF output/proof is used to generate randomness for leader election in the next epoch
 
-### Technical details of VRF in cardano
+### Technical details of VRF usage in cardano
 
-It is worth mentioning in a nutshell, how exactly, VRF is used in consensus.
+It is worth mentioning, in a nutshell, how exactly VRF is used in the cardano consensus.
 It is succintly presented in Fig. 2 of [Ouroboros Praos paper](https://iohk.io/en/research/library/papers/ouroboros-praos-an-adaptively-secure-semi-synchronous-proof-of-stake-protocol/).
 
 VRF is used as the core randomness generating scheme in Praos.
@@ -61,9 +61,9 @@ Having a VRF secret key and an input, one is able to output a pseudorandom numbe
 Anyone with the corresponding public key and the proof can verify that the number was produced with the expected input.
 On the another hand, the holder of public key cannot do it before that time.
 
-In Praos, each block **B** has an agreed **nounce** that must be used as an input for each participant, **P**, to  its VRF.
-For a slot number **sl**, each participant **P** uses its VRF and the **nounce** and generate
-random number. If the random number is smaller than a threshold value computed from their stakes, then they are the leader of a given slot.
+In Praos, each block **B** has an agreed **nounce** that must be used as an input for each participant, **P**, to his VRF.
+For a slot number **sl**, each participant **P** uses his VRF and the **nounce** and generate
+random number. If the random number is smaller than a threshold value computed from his relative stake, then they are the leader of a given slot.
 As the VRF computation is independent between participants, we can have multiple leaders or none.
 The following code snippet embodies this stage:
 
@@ -72,19 +72,19 @@ let t = threshold_compute(pool_stake);
 
 for sl in slots_in_epoch {
     let input = nounce ++ sl ++ "TEST";
-    let (y, proof) = VRF.prove(SK, input);
+    let (output, proof) = VRF.prove(SK, input);
     if y < t then {
-        prepare_for_generating_block(sl, y, proof)
+        prepare_for_generating_block(sl, output, proof)
     }
 }
 ```
 
-If the participant, **P**, is chosen to generate the block is runs VRF.prove like above but with _NOUNCE_ instead of _TEST_.
-The resultant **y** and **proof** are put into the block header.
+If the participant, **P**, is chosen to generate the block, VRF.prove is run like above, but with _NOUNCE_ instead of _TEST_.
+The resultant **output** and **proof** are put into the block header.
 
-When the epoch is coming to an end, from **16k** slots (out of **24k** that make each epoch, **k** is security parameter) **ys** are extracted,
-concatinated along with the previous **nounce**. Then the hash is taken and the next epoch **nounce** is determined that way.
-Each participant also updates their threshold value to be valid in the coming epoch.
+When the epoch is coming to an end, from **16k** slots (out of **24k** that make each epoch, **k** is security parameter) **outputs** are extracted,
+concatenated along with the **nounce**. Then the hash of that concatenated payload is taken and the next epoch **nounce** is determined that way.
+Each participant also updates his threshold value to be valid in the next epoch.
 
 ## Command-Line
 
