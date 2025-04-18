@@ -312,5 +312,32 @@ mod test {
             prop_assert!(proof_bytes.len() == 80);
         }
 
+        #[test]
+        fn proof_to_hash_equals_verify_result(((sk_bytes,pk),alpha) in (secret_public_keys(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &alpha);
+            let hash_from_proof = VrfProof03::proof_to_hash(&proof);
+            let verify_res = proof.verify(&pk, &alpha);
+            prop_assert!(verify_res.is_ok());
+            prop_assert!(verify_res.unwrap() == hash_from_proof);
+        }
+
+        #[test]
+        fn proofs_from_different_alpha_never_equals(((sk_bytes,pk),alpha1,alpha2) in (secret_public_keys(), payload(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof1 = VrfProof03::generate(&pk, &sk, &alpha1);
+            let proof2 = VrfProof03::generate(&pk, &sk, &alpha2);
+            prop_assert!(VrfProof03::to_bytes(&proof1) != VrfProof03::to_bytes(&proof2));
+        }
+
+        #[test]
+        fn proofs_from_different_secret_keys_never_equals(((sk_bytes1,pk1),(sk_bytes2,pk2),alpha) in (secret_public_keys(), secret_public_keys(), payload())) {
+            let sk1 = SecretKey03::from_bytes(&sk_bytes1);
+            let sk2 = SecretKey03::from_bytes(&sk_bytes2);
+            let proof1 = VrfProof03::generate(&pk1, &sk1, &alpha);
+            let proof2 = VrfProof03::generate(&pk2, &sk2, &alpha);
+            prop_assert!(VrfProof03::to_bytes(&proof1) != VrfProof03::to_bytes(&proof2));
+        }
+
     }
 }
