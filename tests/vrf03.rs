@@ -281,6 +281,7 @@ mod test {
 
     use proptest::prelude::*;
     use vrf_dalek::constants::SEED_SIZE;
+    use vrf_dalek::errors::VrfError;
 
     fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {
         proptest::string::bytes_regex("[[:ascii:]]{32}")
@@ -339,5 +340,20 @@ mod test {
             prop_assert!(VrfProof03::to_bytes(&proof1) != VrfProof03::to_bytes(&proof2));
         }
 
+        #[test]
+        fn verify_for_different_public_key_always_fails(((sk_bytes,pk),(_,pk2),alpha) in (secret_public_keys(), secret_public_keys(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &alpha);
+            let verify_res = proof.verify(&pk2, &alpha);
+            prop_assert!(verify_res == Err(VrfError::VerificationFailed));
+        }
+
+        #[test]
+        fn verify_for_different_alpha_always_fails(((sk_bytes,pk),alpha1,alpha2) in (secret_public_keys(), payload(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &alpha1);
+            let verify_res = proof.verify(&pk, &alpha2);
+            prop_assert!(verify_res == Err(VrfError::VerificationFailed));
+        }
     }
 }
