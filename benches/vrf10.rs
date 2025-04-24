@@ -1,10 +1,10 @@
+#[allow(unused_must_use)]
+use cardano_vrf_rs::vrf10::{PublicKey10, SecretKey10, VrfProof10};
+use cardano_vrf_rs::vrf10_batchcompat::{BatchItem, BatchVerifier, VrfProof10BatchCompat};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 use std::time::Duration;
-#[allow(unused_must_use)]
-use vrf_dalek::vrf10::{PublicKey10, SecretKey10, VrfProof10};
-use vrf_dalek::vrf10_batchcompat::{BatchItem, BatchVerifier, VrfProof10BatchCompat};
 
 fn vrf10(c: &mut Criterion) {
     let mut group = c.benchmark_group("VRF10");

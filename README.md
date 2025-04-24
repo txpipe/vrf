@@ -79,7 +79,7 @@ Each participant also updates his threshold value to be valid in the next epoch.
 
 ## Command-Line
 
-`vrf_dalek` comes with a command-line interface for Linux. The command-line is self explanatory by using `--help` on various commands and sub-commands.
+`cardano_vrf_rs` comes with a command-line interface for Linux. The command-line is self explanatory by using `--help` on various commands and sub-commands.
 
 ### How to randomly generate a valid secret key (<strong>sk.prv</strong>)
 

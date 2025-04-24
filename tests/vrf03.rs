@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
-    use vrf_dalek::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
-    use vrf_dalek::vrf03::{PublicKey03, SecretKey03, VrfProof03};
+    use cardano_vrf_rs::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
+    use cardano_vrf_rs::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // VRF test vector from                                                                         //
@@ -279,9 +279,9 @@ mod test {
         Ok(())
     }
 
+    use cardano_vrf_rs::constants::SEED_SIZE;
+    use cardano_vrf_rs::errors::VrfError;
     use proptest::prelude::*;
-    use vrf_dalek::constants::SEED_SIZE;
-    use vrf_dalek::errors::VrfError;
 
     fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {
         proptest::string::bytes_regex("[[:ascii:]]{32}")

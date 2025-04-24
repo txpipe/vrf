@@ -185,9 +185,9 @@ pub fn run(config: Config) -> CLIResult<()> {
 
 /// Parses line entered by user into config
 pub fn get_args() -> CLIResult<Config> {
-    let matches = App::new("vrf_dalek")
+    let matches = App::new("cardano_vrf_rs")
         .version("0.1.0")
-        .author("CF <????>")
+        .author("Cardano Foundation")
         .about("Rust VRF-03")
         .arg(
             Arg::with_name("generate")
