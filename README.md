@@ -157,3 +157,15 @@ $ cat proof | cargo run --quiet -- -o ; echo
 $ echo "msg" | cargo run --quiet -- --verify $(cat proof) pk.pub ; echo
 4c10b27c0ba84c7298801d223090092faa946d459e6768048c27f3683dadaa2165bc51d1f23846febae0965b184fd3dce9bfaa4d60919f7b37a8613c212e19a8
 ```
+
+## Performance
+
+### Benchmarks
+
+We ran our benchmarks using `RUSTFLAGS='-C target-cpu=native` cargo bench with an `Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz` cpu.
+The results are following:
+
+```text
+   VRF03 aka Praos/Generation              time:   [175.17 us 175.76 us 176.60 us]
+   VRF10 aka Praos//Verification           time:   [128.33 us 128.60 us 128.91 us]
+```
