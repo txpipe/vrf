@@ -278,4 +278,81 @@ mod test {
 
         Ok(())
     }
+
+    use proptest::prelude::*;
+    use vrf_dalek::constants::SEED_SIZE;
+    use vrf_dalek::errors::VrfError;
+
+    fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {
+        proptest::string::bytes_regex("[[:ascii:]]{32}")
+            .unwrap()
+            .prop_map(|vec| {
+                let mut bytes = [0u8; 32];
+                bytes.copy_from_slice(&vec);
+                let sk = SecretKey03::from_bytes(&bytes);
+                (bytes, PublicKey03::from(&sk))
+            })
+    }
+
+    fn payload() -> impl Strategy<Value = Vec<u8>> {
+        proptest::string::bytes_regex("[[:ascii:]]{0,254}").unwrap()
+    }
+
+    proptest! {
+        #[test]
+        fn public_key_has_32_bytes((_sk_bytes,pk) in secret_public_keys()) {
+            let pk_bytes = PublicKey03::to_bytes(pk);
+            prop_assert!(pk_bytes.len() == 32);
+        }
+
+        #[test]
+        fn proof_has_80_bytes(((sk_bytes,pk),payload) in (secret_public_keys(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &payload);
+            let proof_bytes = VrfProof03::to_bytes(&proof);
+            prop_assert!(proof_bytes.len() == 80);
+        }
+
+        #[test]
+        fn proof_to_hash_equals_verify_result(((sk_bytes,pk),payload) in (secret_public_keys(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &payload);
+            let hash_from_proof = VrfProof03::proof_to_hash(&proof);
+            let verify_res = proof.verify(&pk, &payload);
+            prop_assert!(verify_res.unwrap() == hash_from_proof);
+        }
+
+        #[test]
+        fn proofs_from_different_payload_never_equals(((sk_bytes,pk),payload1,payload2) in (secret_public_keys(), payload(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof1 = VrfProof03::generate(&pk, &sk, &payload1);
+            let proof2 = VrfProof03::generate(&pk, &sk, &payload2);
+            prop_assert!(VrfProof03::to_bytes(&proof1) != VrfProof03::to_bytes(&proof2));
+        }
+
+        #[test]
+        fn proofs_from_different_secret_keys_never_equals(((sk_bytes1,pk1),(sk_bytes2,pk2),payload) in (secret_public_keys(), secret_public_keys(), payload())) {
+            let sk1 = SecretKey03::from_bytes(&sk_bytes1);
+            let sk2 = SecretKey03::from_bytes(&sk_bytes2);
+            let proof1 = VrfProof03::generate(&pk1, &sk1, &payload);
+            let proof2 = VrfProof03::generate(&pk2, &sk2, &payload);
+            prop_assert!(VrfProof03::to_bytes(&proof1) != VrfProof03::to_bytes(&proof2));
+        }
+
+        #[test]
+        fn verify_for_different_public_key_always_fails(((sk_bytes1,pk1),(_sk_bytes2,pk2),payload) in (secret_public_keys(), secret_public_keys(), payload())) {
+            let sk1 = SecretKey03::from_bytes(&sk_bytes1);
+            let proof = VrfProof03::generate(&pk1, &sk1, &payload);
+            let verify_res = proof.verify(&pk2, &payload);
+            prop_assert!(verify_res == Err(VrfError::VerificationFailed));
+        }
+
+        #[test]
+        fn verify_for_different_payload_always_fails(((sk_bytes,pk),payload1,payload2) in (secret_public_keys(), payload(), payload())) {
+            let sk = SecretKey03::from_bytes(&sk_bytes);
+            let proof = VrfProof03::generate(&pk, &sk, &payload1);
+            let verify_res = proof.verify(&pk, &payload2);
+            prop_assert!(verify_res == Err(VrfError::VerificationFailed));
+        }
+    }
 }

@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 //! VRF implementation
 pub mod cli;
-mod constants;
+pub mod constants;
 pub mod errors;
 pub mod golden;
 pub mod vrf;
