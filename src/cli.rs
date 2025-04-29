@@ -187,7 +187,7 @@ pub fn run(config: Config) -> CLIResult<()> {
 pub fn get_args() -> CLIResult<Config> {
     let matches = App::new("pallas_vrf")
         .version("0.1.0")
-        .author("Cardano Foundation")
+        .author("HAL Team <hal@cardanofoundation.org>")
         .about("Rust VRF-03")
         .arg(
             Arg::with_name("generate")
