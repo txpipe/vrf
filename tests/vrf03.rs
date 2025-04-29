@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
-    use cardano_vrf_rs::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
-    use cardano_vrf_rs::vrf03::{PublicKey03, SecretKey03, VrfProof03};
+    use pallas_vrf::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
+    use pallas_vrf::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // VRF test vector from                                                                         //
@@ -279,8 +279,8 @@ mod test {
         Ok(())
     }
 
-    use cardano_vrf_rs::constants::SEED_SIZE;
-    use cardano_vrf_rs::errors::VrfError;
+    use pallas_vrf::constants::SEED_SIZE;
+    use pallas_vrf::errors::VrfError;
     use proptest::prelude::*;
 
     fn secret_public_keys() -> impl Strategy<Value = ([u8; SEED_SIZE], PublicKey03)> {

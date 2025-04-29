@@ -1,6 +1,6 @@
-#[allow(unused_must_use)]
-use cardano_vrf_rs::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 use criterion::{criterion_group, criterion_main, Criterion};
+#[allow(unused_must_use)]
+use pallas_vrf::vrf03::{PublicKey03, SecretKey03, VrfProof03};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 use std::time::Duration;
