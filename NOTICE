@@ -1,4 +1,10 @@
-copyright: 2018-2024 Input Output Global Inc (IOG)
+Copyright:
+- 2018-2024: Input Output Global Inc.
+- 2024-2025: TxPipe
+
+Portions of this code were originally developed by Input Output Global
+Inc. under the Apache 2.0 License and have since been modified by
+TXPipe and contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may not use this file except in compliance with the License.
