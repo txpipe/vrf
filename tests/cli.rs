@@ -1,4 +1,4 @@
-use vrf_dalek::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
+use pallas_vrf::golden::{GoldenTestVector, CARDANO_BASE_TEST_VECTORS};
 
 use assert_cmd::Command;
 use getrandom::fill;
@@ -10,7 +10,7 @@ use rand::{
 use std::{fs, io::Write};
 use tempfile::NamedTempFile;
 
-const PRG: &str = "vrf_dalek";
+const PRG: &str = "pallas_vrf";
 
 #[test]
 fn correct_output_help_arg() {
@@ -24,7 +24,7 @@ fn correct_output_help_arg() {
 #[test]
 fn correct_output_version_arg() {
     let mut cmd = Command::cargo_bin(PRG).unwrap();
-    let ver = "vrf_dalek 0.1.0";
+    let ver = "pallas_vrf 0.1.0";
     cmd.arg("--version")
         .assert()
         .success()
